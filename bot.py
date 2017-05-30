@@ -31,7 +31,7 @@ def irouva_handler(bot, update):
 
     if photo_url is None:
 
-        if (update.message.text == "/" + MAIN_COMMAND_NAME):
+        if update.message.text == "/" + MAIN_COMMAND_NAME:
             help_message = get_help_message(photo_dict)
             update.message.reply_text(help_message)
         else:
@@ -40,7 +40,7 @@ def irouva_handler(bot, update):
     else:
         bot.sendPhoto(
             chat_id=update.message.chat_id,
-            photo=photo_url,
+            photo=photo_url
         )
 
 
