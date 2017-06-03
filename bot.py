@@ -1,4 +1,5 @@
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, InlineQueryHandler
+from telegram import InlineQueryResultPhoto
 import ConfigParser
 import logging
 
@@ -7,8 +8,6 @@ CONFIG_TELEGRAM_SECTION = "TELEGRAM"
 CONFIG_IMAGES_SECTION = "IMAGES"
 CONFIG_TELEGRAM_TOKEN_API_KEY = "token_api"
 
-MAIN_COMMAND_NAME = "irouva"
-
 config_parser = ConfigParser.ConfigParser()
 config_parser.readfp(open(CONFIG_FILE_RELATIVE_PATH))
 
@@ -16,46 +15,25 @@ token_api = config_parser.get(CONFIG_TELEGRAM_SECTION, CONFIG_TELEGRAM_TOKEN_API
 
 
 def irouva_handler(bot, update):
-    user = update.message.from_user
 
-    logger.info("Message sent from %s: %s" % (user.first_name, update.message.text))
+    results = list()
 
     photo_dict = dict(config_parser.items(CONFIG_IMAGES_SECTION))
-    photo_url = None
 
     for key, value in photo_dict.iteritems():
 
-        if update.message.text.endswith(" " + key):
-            photo_url = value
-            break
+        results.append(InlineQueryResultPhoto(
+                        type='photo',
+                        id=key,
+                        photo_url=value,
+                        thumb_url=value
+                   ))
 
-    if photo_url is None:
-
-        if update.message.text == "/" + MAIN_COMMAND_NAME:
-            help_message = get_help_message(photo_dict)
-            update.message.reply_text(help_message)
-        else:
-            update.message.reply_text(
-                "Sorry {}, I don't have this irouva pic... yet :)".format(user.first_name))
-    else:
-        bot.sendPhoto(
-            chat_id=update.message.chat_id,
-            photo=photo_url
-        )
+    update.inline_query.answer(results)
 
 
-def get_help_message(photo_dict):
-    all_emots_codes = get_all_emots_codes(photo_dict)
-    help_message = "Usage: /" + MAIN_COMMAND_NAME + "<emot-code> \nEmots available: " + all_emots_codes
-    return help_message
-
-
-def get_all_emots_codes(photo_dict):
-    all_emots = "";
-    for key in photo_dict.keys():
-        all_emots += "{" + key + "}"
-
-    return all_emots
+def error(bot, update, error):
+    logger.warning('Update "%s" caused error "%s"' % (update, error))
 
 
 def enable_logging():
@@ -68,7 +46,9 @@ def enable_logging():
 enable_logging()
 
 updater = Updater(token_api)
-updater.dispatcher.add_handler(CommandHandler(MAIN_COMMAND_NAME, irouva_handler))
+dp = updater.dispatcher
+dp.add_error_handler(error)
+dp.add_handler(InlineQueryHandler(irouva_handler))
 
 updater.start_polling()
 updater.idle()
